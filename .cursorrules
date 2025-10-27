@@ -1,0 +1,201 @@
+# CTR Prediction Project - AI Agent Rules
+
+## Project Context
+
+This is a **Click-Through Rate (CTR) prediction project** for UCLA Stats C161. The goal is to develop machine learning models (primarily Logistic Regression and Decision Trees) to predict whether a user will click on an advertisement given user and ad features.
+
+**Key Datasets**:
+- Training: 7.6M rows, 38 columns
+- Test: 976K rows, 38 columns
+- Each row = user-ad interaction
+
+**Target Variable**: `label` (binary click indicator: 0/1)
+
+## File Structure
+
+**Key Files**:
+- `ctr-prediction.ipynb`: Main notebook with all analysis and outputs
+- `data_preprocessing.py`: Script that saves `train_merged.pkl` and `test_merged.pkl`
+- Always load `.pkl` files rather than re-processing raw data
+
+**Workflow**: 
+1. Preprocess data → save as `.pkl` files
+2. Feature engineering stays in main notebook for now
+3. Modeling notebooks will load `.pkl` files directly
+
+## Code Generation Rules
+
+### Simplicity First
+- Every line should be self-explanatory
+- No clever one-liners that sacrifice readability
+- Break complex operations into multiple clear steps
+- Prioritize clarity over brevity
+- Prioritize writing the type of code that helps the user learn how to code out a project like this and only use clever one liners / tricks when they really add a lot
+- Be honest when you do not know something and want to ask the user for more context or clarification
+
+### Naming Conventions
+- Use `snake_case` for variables and functions
+- Descriptive names: `train_merged` not `df1`
+- Self-documenting column names: `feeds_ctr` not `fctr`
+
+### One Task at a Time
+- Work on **ONE thing at a time**
+- Complete each step fully and correctly before moving to the next
+- Get one thing done perfectly rather than multitasking across prompts
+
+### Function Design
+- Create reusable functions for repetitive operations
+- Clear, descriptive function names
+- Use docstrings to document purpose
+
+### Memory Management
+- Use `gc.collect()` after deleting large DataFrames
+- Be mindful of 7.6M row datasets
+- Delete intermediate DataFrames when no longer needed
+
+### Comments
+- Explain the **"why"** behind code, not just the "what"
+- Help user understand statistical reasoning
+- Aim to teach alongside implementation
+
+## Documentation Requirements
+
+### Markdown Cells
+- **Every code section** preceded by markdown cell
+- Explain **purpose** and **approach** before executing
+- Markdown cells answer: "What are we doing and why?"
+- **Keep it concise**: Notebook is for readers - avoid fluffy explanations
+- **Educational explanations go in CHAT**, not in the notebook unless specifically requested
+- Markdown should be clear, brief, and professional
+
+### Dual Perspective Explanations
+For each significant operation, explain:
+1. **Technical (Code)**: How the code accomplishes the task
+2. **Statistical (Method)**: Why this approach is statistically appropriate
+
+### Results Interpretation
+After each model:
+- Interpret coefficients statistically (sign, magnitude, significance)
+- Explain what metrics tell us about performance
+- Compare against baseline models
+
+### Feature Tracking
+Maintain tables/logs showing:
+- All engineered features
+- Rationale for each transformation
+- Impact on model performance
+
+## Statistical & Modeling Approach
+
+### Evaluation Strategy
+- **Cross-validation** on training data for tuning
+- **Final evaluation** on held-out test set
+- Report metrics for both CV and test
+
+### Required Metrics
+Always report:
+- **AUC-ROC**: Overall ranking quality
+- **Accuracy**: Proportion of correct predictions
+- **Precision**: P(predicted click | actual click)
+- **Recall**: P(click predicted | actual click)
+- **Log-Loss**: Probabilistic accuracy
+
+### Baselines
+- **Always establish** simple baseline before complex models
+- Options: mean prediction, majority class, simple rules
+- Compare all models against baseline
+
+## Data Handling Rules
+
+### No Data Leakage
+- **NEVER** use test set information in training transformations
+- If target encoding: compute statistics **ONLY** from training set
+- Apply training-derived transformations to test set
+
+### Train/Test Consistency
+- All transformations applied **identically** to train and test
+- Example: if one-hot encoding train, use identical encoding on test
+- Use `safe_keep()` function pattern for column consistency
+
+### Missing Values
+- Document handling strategy for **each feature** type
+- Fill with 0, mean, median, or mode based on context
+- Document rationale for each choice
+
+### Checkpoint Saves
+- Save intermediate processed datasets (`.pkl` files)
+- Avoid re-running expensive operations
+- Load pre-processed data in modeling workflows
+
+## Feature Engineering Rules
+
+### Categorical Encoding
+
+**Low Cardinality (≤10 unique)**: One-hot encode
+- `gender`, `net_type`, `inter_type_cd`, `city_rank`, `age`, `series_group`, `creat_type_cd`
+- Use `drop_first=True` to prevent multicollinearity
+
+**Medium Cardinality (11-50)**: Consider target encoding or grouping
+- `residence`, `series_dev`, `emui_dev`, `hispace_app_tags`, `app_second_class`
+
+**High Cardinality (>50)**: Target encoding or frequency encoding
+- `city`, `device_name`, `device_size`, `task_id`, `adv_id`, `adv_prim_id`, `slot_id`
+- **Discuss approach case-by-case** during implementation
+
+### Object Columns
+- **Ignore initially**: `ad_click_list_v001`, `ad_click_list_v002`, `ad_click_list_v003`, `ad_close_list_v001`, `ad_close_list_v002`, `ad_close_list_v003`, `u_newsCatInterestsST`
+- Revisit later if needed
+
+### Ordinal vs Nominal
+- **Ordinal** (keep numeric): `age`, `city_rank`
+- **Nominal** (one-hot or target encode): `gender`, `net_type`, `residence`
+
+## Response Format
+
+### When Writing Code
+- Keep it simple and readable
+- One task at a time
+- Explain reasoning (statistical + technical)
+- Check for data leakage
+- Save intermediate results
+
+### When Modeling
+- Start with baseline
+- Use cross-validation on train
+- Evaluate on held-out test
+- Report multiple metrics
+- Interpret results statistically
+
+### When Documenting
+- Markdown cells before code
+- Explain the "why" not just "what"
+- Track all feature engineering decisions
+- Document model performance and insights
+
+## Communication Style
+
+- Be conversational and educational **IN CHAT**
+- Explain both technical implementation in the code and statistical reasoning **IN CHAT**
+- Help the user learn alongside building the project **IN CHAT**
+- **Keep notebook documentation concise and professional** - avoid lengthy explanations unless requested
+- **Educational concepts and "why" explanations should be in chat, not bloating the notebook**
+- Cite specific line numbers or files when referencing code
+- Ask clarifying questions when requirements are ambiguous
+
+## Task Sequencing
+
+1. Complete each task fully before moving to the next
+2. Don't start new tasks until current one is done
+3. Save checkpoints after major steps
+4. Load `.pkl` files rather than re-processing when possible
+5. Feature engineering stays in main notebook (not separate file yet)
+
+## Libraries
+
+**Core** (Always available):
+- pandas, numpy, scikit-learn, matplotlib, seaborn
+
+**Memory management**: gc
+
+**Additional**: Add as needed with justification
+
