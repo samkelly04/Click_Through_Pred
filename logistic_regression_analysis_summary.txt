@@ -1,0 +1,36 @@
+# Logistic Regression Analysis - Notebook Summary
+
+## Created: logistic_regression_analysis.ipynb
+
+### Structure:
+- **52 cells total**
+- **Cells 0-21**: Data loading and preprocessing
+- **Cells 22-50**: All logistic regression analysis
+- **Cell 0**: Title and introduction
+
+### Contents:
+1. **Imports and data loading** (Cells 1-2)
+2. **Data preprocessing** (Cells 3-21):
+   - Data merging
+   - Feature encoding (one-hot, target encoding)
+   - Train/test split
+3. **Logistic Regression Models** (Cells 22-50):
+   - Downsampled approach with resampling
+   - Class-weighted approach with class_weight='balanced'
+   - Hyperparameter tuning (C regularization)
+   - Threshold optimization
+   - ROC and Precision-Recall curves
+   - Final model comparison
+
+### Main notebook updated:
+- **lasted-version 2.ipynb** now has 36 cells
+- LR section replaced with reference to `logistic_regression_analysis.ipynb`
+- Decision Tree and Random Forest sections remain intact
+
+### Benefits:
+- Cleaner main notebook focused on comparative analysis
+- LR analysis is self-contained and reproducible
+- Easier to present or share specific approaches
+- Clearer separation of concerns
+
+

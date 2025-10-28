@@ -43,7 +43,7 @@ def main():
     # Define variables to keep
     user_var = [
         'user_id', 'log_id', 'age', 'gender', 'residence', 'device_name',
-        'device_size', 'net_type', 'task_id', 'adv_id', 'creat_type_cd'
+        'device_size', 'net_type', 'task_id', 'creat_type_cd'
     ]
     adv_var = ['user_id', 'label']
     
@@ -91,6 +91,11 @@ def main():
     # Create final train and test sets
     train_merged = data_user[data_user['istest'] == 0].drop(columns=['istest']).reset_index(drop=True)
     test_merged = data_user[data_user['istest'] == 1].drop(columns=['istest']).reset_index(drop=True)
+
+    # Drop adv_id to avoid ad-specific random effects (do not encode)
+    for df in (train_merged, test_merged):
+        if 'adv_id' in df.columns:
+            df.drop(columns=['adv_id'], inplace=True)
     
     print(f"Train rows: {len(train_merged)} | Test rows: {len(test_merged)}")
     print(f"Train columns: {len(train_merged.columns)} | Test columns: {len(test_merged.columns)}")
@@ -100,6 +105,8 @@ def main():
     # One-hot encode gender
     gender_dummies_train = pd.get_dummies(train_merged['gender'], prefix='gender', drop_first=True)
     gender_dummies_test = pd.get_dummies(test_merged['gender'], prefix='gender', drop_first=True)
+    # Ensure test has same columns as train (fill missing with 0)
+    gender_dummies_test = gender_dummies_test.reindex(columns=gender_dummies_train.columns, fill_value=0)
     train_encoded = train_merged.drop(columns=['gender']).reset_index(drop=True)
     test_encoded = test_merged.drop(columns=['gender']).reset_index(drop=True)
     train_encoded = pd.concat([train_encoded, gender_dummies_train], axis=1)
@@ -108,13 +115,15 @@ def main():
     # One-hot encode net_type
     net_type_dummies_train = pd.get_dummies(train_encoded['net_type'], prefix='net_type', drop_first=True)
     net_type_dummies_test = pd.get_dummies(test_encoded['net_type'], prefix='net_type', drop_first=True)
+    # Ensure test has same columns as train (fill missing with 0)
+    net_type_dummies_test = net_type_dummies_test.reindex(columns=net_type_dummies_train.columns, fill_value=0)
     train_encoded = train_encoded.drop(columns=['net_type']).reset_index(drop=True)
     test_encoded = test_encoded.drop(columns=['net_type']).reset_index(drop=True)
     train_encoded = pd.concat([train_encoded, net_type_dummies_train], axis=1)
     test_encoded = pd.concat([test_encoded, net_type_dummies_test], axis=1)
     
-    # Target encoding for high cardinality features
-    target_encode_features = ['slot_id', 'device_name', 'task_id', 'adv_id', 'city', 'adv_prim_id']
+    # Target encoding for high cardinality features (adv_id removed to avoid random effects)
+    target_encode_features = ['slot_id', 'device_name', 'task_id', 'city', 'adv_prim_id']
     
     for feat in target_encode_features:
         if feat in train_encoded.columns:
@@ -135,6 +144,8 @@ def main():
         if feat in train_encoded.columns:
             dummies_train = pd.get_dummies(train_encoded[feat], prefix=feat, drop_first=True)
             dummies_test = pd.get_dummies(test_encoded[feat], prefix=feat, drop_first=True)
+            # Ensure test has same columns as train (fill missing with 0)
+            dummies_test = dummies_test.reindex(columns=dummies_train.columns, fill_value=0)
             train_encoded = train_encoded.drop(columns=[feat])
             test_encoded = test_encoded.drop(columns=[feat])
             train_encoded = pd.concat([train_encoded, dummies_train], axis=1)
@@ -159,6 +170,35 @@ def main():
             train_encoded = train_encoded.drop(columns=[feat])
             test_encoded = test_encoded.drop(columns=[feat])
     
+    # =================== INTERACTION FEATURES ===================
+    # 1) engagement_by_slot = feeds_ctr * slot_id_encoded
+    if 'feeds_ctr' in train_encoded.columns and 'slot_id_encoded' in train_encoded.columns:
+        train_encoded['engagement_by_slot'] = train_encoded['feeds_ctr'] * train_encoded['slot_id_encoded']
+        test_encoded['engagement_by_slot'] = test_encoded['feeds_ctr'] * test_encoded['slot_id_encoded']
+
+    # 2) bandwidth_by_creative (fallback: bandwidth_by_slot)
+    # Define high_bandwidth using available net_type one-hot columns (4/5/6/7 observed in data)
+    def _compute_high_bandwidth(df):
+        candidates = [c for c in ['net_type_4', 'net_type_5', 'net_type_6', 'net_type_7'] if c in df.columns]
+        if not candidates:
+            return None
+        return df[candidates].sum(axis=1)
+
+    hb_train = _compute_high_bandwidth(train_encoded)
+    hb_test = _compute_high_bandwidth(test_encoded)
+
+    if hb_train is not None and hb_test is not None:
+        # Try to find a video creative dummy; if not present, fallback to bandwidth_by_slot
+        video_cols = [c for c in train_encoded.columns if c.startswith('creat_type_') and 'video' in c.lower()]
+        if video_cols:
+            video_col = video_cols[0]
+            train_encoded['bandwidth_by_creative'] = hb_train * train_encoded[video_col]
+            test_encoded['bandwidth_by_creative'] = hb_test * test_encoded[video_col]
+        elif 'slot_id_encoded' in train_encoded.columns:
+            # Fallback per plan: bandwidth_by_slot
+            train_encoded['bandwidth_by_slot'] = hb_train * train_encoded['slot_id_encoded']
+            test_encoded['bandwidth_by_slot'] = hb_test * test_encoded['slot_id_encoded']
+
     print(f"\nFinal train shape: {train_encoded.shape}")
     print(f"Final test shape: {test_encoded.shape}")
     
