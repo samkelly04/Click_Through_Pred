@@ -1,183 +1,215 @@
 # CTR Prediction Project
 
-**UCLA Stats C161 - Midterm Project**  
-**Topic**: Click-Through Rate (CTR) Prediction
+**UCLA Stats C161 - Final Project**  
+**Topic**: Click-Through Rate (CTR) Prediction using Machine Learning
 
 ---
 
 ## Project Overview
 
-### Goal
-Develop machine learning models (primarily Logistic Regression and Decision Trees) to predict the probability that a user will click on an advertisement given the features of both the user and the advertisement.
+This project develops machine learning models to predict the probability that a user will click on an advertisement, given features of both the user and the advertisement.
 
 **Core Question**: P(click | advertisement features, user features)
 
 **Target Variable**: `label` - binary click indicator (0 = no click, 1 = click)
 
----
-
-## Data Architecture
-
-### Source Datasets
-- **`train_data_ads.csv` / `test_data_ads.csv`**: User-level data
-- **`train_data_feeds.csv` / `test_data_feeds.csv`**: Advertisement interaction data
-
-### Merged Dataset Strategy
-The datasets are merged so that each row represents a user-ad interaction, combining:
-- User demographic features (age, gender, residence, device info)
-- Advertisement features (ad campaign ID, creative type, placement info)
-- User behavior features (aggregated from feeds data: impressions, clicks, CTR)
-
-**Final Merged Datasets**:
-- **Training**: `train_merged` (7.6M rows, 38 columns)
-- **Test**: `test_merged` (976K rows, 38 columns)
+### Key Results
+- **Best Model**: LightGBM with CVAE-augmented data
+- **AUC-ROC**: ~0.75-0.79
+- **Challenge**: Severe class imbalance (98.5% negative class)
 
 ---
 
-## File Structure
+## Project Structure
 
 ```
-Project Root/
-├── README.md                       # This file - project overview
-├── .cursorrules                    # AI agent behavior instructions
-├── ctr-prediction.ipynb           # Main notebook: all analysis, outputs, documentation
-├── data_preprocessing.py           # Clean preprocessing script
-├── train_merged.pkl               # Saved processed training data
-├── test_merged.pkl                # Saved processed test data
-├── train_data_ads.csv
-├── train_data_feeds.csv
-├── test_data_ads.csv
-├── test_data_feeds.csv
-└── [future modeling notebooks]   # Will load .pkl files for modeling
-```
-
----
-
-## Workflow
-
-### 1. Data Preprocessing (`data_preprocessing.py`)
-- Loads and merges the ads and feeds datasets
-- Performs data cleaning and merging operations
-- Saves processed data as `.pkl` files for efficient loading
-- Mirrors the preprocessing code from `ctr-prediction.ipynb`
-
-### 2. Main Notebook (`ctr-prediction.ipynb`)
-- Contains all analysis, visualizations, and documentation
-- Loads `.pkl` files when needed (avoids re-running expensive operations)
-- Houses feature engineering and modeling workflows
-- Includes markdown cells explaining the statistical and technical approaches
-
-### 3. Future Modeling Notebooks
-- Cleanly load `train_merged.pkl` and `test_merged.pkl`
-- Focus on modeling without re-processing data
-
----
-
-## Statistical Approach
-
-### Evaluation Strategy
-1. **Cross-validation** on training data for hyperparameter tuning
-2. **Final evaluation** on held-out test set
-3. Report performance for both CV and test
-
-### Required Metrics
-Always report:
-- **AUC-ROC**: Overall ranking quality
-- **Accuracy**: Proportion of correct predictions
-- **Precision**: P(predicted click | actual click)
-- **Recall**: P(click predicted | actual click)
-- **Log-Loss**: Probabilistic accuracy
-
-### Modeling Philosophy
-- Start with baseline models before complex approaches
-- Use Logistic Regression and Decision Trees (primary models)
-- Explore additional methods if time permits
-- Document feature importance and statistical interpretation
-
----
-
-## Feature Engineering
-
-### Categorical Encoding Strategy
-
-Based on cardinality (number of unique values):
-
-| Cardinality | Strategy | Examples |
-|-------------|----------|----------|
-| ≤ 10 | One-hot encoding | `gender`, `net_type`, `inter_type_cd` |
-| 11-50 | Target encoding or grouping | `residence`, `series_dev` |
-| > 50 | Target encoding or frequency encoding | `device_name`, `adv_id`, `task_id` |
-
-### Feature Categories
-
-**Low Cardinality (One-Hot Encode)**:
-- `gender` (3 unique)
-- `age` (8 unique)
-- `city_rank` (4 unique)
-- `net_type` (6 unique)
-- `series_group` (7 unique)
-- `creat_type_cd` (9 unique)
-- `inter_type_cd` (4 unique)
-
-**High Cardinality (Handle Case-by-Case)**:
-- `city` (341 unique)
-- `device_name` (256 unique)
-- `task_id` (11,209 unique)
-- `adv_id` (12,615 unique)
-
-### Object Columns
-Initially ignored for modeling:
-- `ad_click_list_v001`, `ad_click_list_v002`, `ad_click_list_v003`
-- `ad_close_list_v001`, `ad_close_list_v002`, `ad_close_list_v003`
-- `u_newsCatInterestsST`
-
-These contain list-like data and will be revisited later if needed.
-
----
-
-## Libraries
-
-### Core Dependencies
-- **pandas**: Data manipulation and merging
-- **numpy**: Numerical operations
-- **scikit-learn**: Machine learning models and evaluation
-- **matplotlib**: Basic plotting
-- **seaborn**: Statistical visualizations
-- **gc**: Garbage collection for memory management
-
-Additional libraries added as needed with clear justification.
-
----
-
-## Notebook Organization
-
-### Recommended Section Order
-1. **Data Loading & Merging**
-2. **Exploratory Data Analysis**
-3. **Feature Engineering**
-4. **Model Development** (Logistic Regression, Decision Trees, etc.)
-5. **Model Evaluation & Comparison**
-6. **Conclusions**
-
-### Cell Pattern
-```python
-# 1. Markdown cell: Explain what we're doing and why
-# 2. Code cell: Execute the operation
-# 3. Markdown cell (if needed): Interpret results
+f_project/
+├── README.md                    # This file
+├── CLAUDE.md                    # AI agent instructions
+│
+├── data/                        # Data directory
+│   ├── raw/                     # Original CSV files
+│   │   ├── train_data_ads.csv
+│   │   ├── train_data_feeds.csv
+│   │   ├── test_data_ads.csv
+│   │   └── test_data_feeds.csv
+│   ├── processed/               # Preprocessed pickle files
+│   │   ├── train_encoded.pkl
+│   │   └── test_encoded.pkl
+│   └── synthetic/               # Generated synthetic data
+│       ├── ctgan_synthetic_data.pkl
+│       ├── conditional_tvae_synthetic.pkl
+│       └── conditional_tvae_synthetic.csv
+│
+├── src/                         # Python source code
+│   ├── data_preprocessing.py    # Data preprocessing pipeline
+│   ├── logistic_regression_with_synthetic.py
+│   ├── logistic_regression_with_synthetic_optimized.py
+│   ├── lightgbm_analysis.py
+│   ├── lightgbm_with_synthetic.py
+│   ├── train_cvae_models.py
+│   ├── conditional_vae_demo.py
+│   ├── conditional_vae_production.py
+│   ├── generate_ctgan_data.py
+│   ├── analyze_cvae_data_quality.py
+│   ├── compare_models_visualizations.py
+│   ├── lr_comparison_visualizations.py
+│   ├── visualize_cvae_results.py
+│   ├── test_evaluation.py
+│   └── test_visualizations.py
+│
+├── notebooks/                   # Jupyter notebooks
+│   ├── logistic_regression_analysis.ipynb  # Primary analysis
+│   ├── ctr_pred_pre-processing.ipynb       # Preprocessing exploration
+│   └── lasted-version 2.ipynb              # Legacy notebook
+│
+├── models/                      # Trained model files
+│   ├── lr_baseline_model.pkl
+│   ├── lr_augmented_model.pkl
+│   ├── lr_cvae_baseline_model.pkl
+│   ├── lr_cvae_augmented_model.pkl
+│   ├── lightgbm_augmented_model.pkl
+│   ├── lightgbm_ctgan_model.pkl
+│   ├── lgbm_cvae_baseline_model.pkl
+│   ├── lgbm_cvae_augmented_model.pkl
+│   ├── gradient_boosting_model.pkl
+│   └── conditional_tvae_model.pkl
+│
+├── figures/                     # Generated visualizations
+│   ├── roc_curve.png
+│   ├── precision_recall_curve.png
+│   ├── confusion_matrix.png
+│   ├── feature_importance.png
+│   ├── comparison/              # Model comparison plots
+│   ├── lr_comparison/           # Logistic regression comparisons
+│   ├── ctgan_comparison/        # CTGAN model comparisons
+│   ├── ctgan_lgbm/              # CTGAN + LightGBM results
+│   ├── cvae_comparison/         # CVAE model comparisons
+│   ├── cvae_models/             # CVAE-specific plots
+│   ├── cvae_quality/            # CVAE data quality analysis
+│   └── test/                    # Test set analysis
+│
+├── results/                     # Model outputs
+│   ├── metrics/                 # Performance metrics CSVs
+│   └── predictions/             # Model predictions
+│
+└── docs/                        # Documentation
+    ├── CVAE_ANALYSIS.md
+    ├── CVAE_DATA_QUALITY_ANALYSIS.md
+    ├── GRADIENT_BOOSTING_RESULTS.md
+    ├── LIGHTGBM_DETAILED_ANALYSIS.md
+    ├── LIGHTGBM_TEST_PREDICTIONS.md
+    ├── PREPROCESSING_FIXES.md
+    ├── SYNTHETIC_DATA_COMPARISON.md
+    └── logistic_regression_analysis_summary.txt
 ```
 
 ---
 
-## Key Principles
+## Dataset
 
-- **Simplicity**: Code should be readable and self-explanatory
-- **One task at a time**: Complete each step fully before moving to the next
-- **Documentation**: Markdown cells explain both technical and statistical perspectives
-- **No data leakage**: Never use test set information in training transformations
-- **Train/test consistency**: All transformations applied identically to both sets
+### Source Data
+- **Training**: 7.6M rows, 38 columns
+- **Test**: 976K rows, 38 columns
+- Each row represents a user-ad interaction
+
+### Data Files
+| File | Description |
+|------|-------------|
+| `train_data_ads.csv` / `test_data_ads.csv` | User demographic data |
+| `train_data_feeds.csv` / `test_data_feeds.csv` | Advertisement interaction data |
+| `train_encoded.pkl` / `test_encoded.pkl` | Preprocessed, encoded data |
+
+---
+
+## Models Implemented
+
+### 1. Logistic Regression
+- Baseline model with class weighting
+- Augmented with synthetic data (CTGAN, CVAE)
+- Threshold optimization for F1 score
+
+### 2. LightGBM (Gradient Boosting)
+- Best performing model
+- Trained on original and synthetic-augmented data
+- Feature importance analysis
+
+### 3. Synthetic Data Generation
+- **CTGAN**: Conditional Tabular GAN
+- **CVAE**: Conditional Variational Autoencoder
+- Used to address class imbalance
+
+---
+
+## Evaluation Metrics
+
+| Metric | Description |
+|--------|-------------|
+| **AUC-ROC** | Overall ranking quality (primary metric) |
+| **Accuracy** | Proportion of correct predictions |
+| **Precision** | P(true click \| predicted click) |
+| **Recall** | P(predicted click \| true click) |
+| **F1 Score** | Harmonic mean of precision/recall |
+| **Log-Loss** | Probabilistic calibration |
+
+---
+
+## Quick Start
+
+### Environment Setup
+```bash
+# Create virtual environment
+python -m venv .venv
+source .venv/bin/activate  # macOS/Linux
+
+# Install dependencies
+pip install pandas numpy scikit-learn matplotlib seaborn lightgbm jupyter
+```
+
+### Data Preprocessing
+```bash
+# Generate preprocessed pickle files
+python src/data_preprocessing.py
+
+# Output: data/processed/train_encoded.pkl, data/processed/test_encoded.pkl
+```
+
+### Run Analysis
+```bash
+# Launch Jupyter
+jupyter notebook
+
+# Open notebooks/logistic_regression_analysis.ipynb
+```
+
+---
+
+## Key Findings
+
+1. **Class Imbalance**: 98.5% negative class requires special handling
+2. **Synthetic Data**: CVAE augmentation improves recall
+3. **Best Model**: LightGBM achieves AUC ~0.79
+4. **Threshold Tuning**: Optimal threshold << 0.5 due to imbalance
+
+---
+
+## Dependencies
+
+- Python 3.8+
+- pandas
+- numpy
+- scikit-learn
+- lightgbm
+- matplotlib
+- seaborn
+- jupyter
+
+---
+
+## Authors
+
+UCLA Stats C161 - Fall 2024
 
 ---
 
 **Last Updated**: December 2024  
-**Status**: Preprocessing complete, feature engineering in progress
-

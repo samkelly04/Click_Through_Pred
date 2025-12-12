@@ -9,9 +9,15 @@ __pycache__/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/*
 
-# Data files (large)
+# Data files (large - stored locally, not in git)
 *.pkl
+*.pkl.backup
 *.csv
+*.npz
+
+# Except small metric/result CSVs (optional - uncomment to track)
+# !*metrics*.csv
+# !feature_importance.csv
 
 # Secrets
 kaggle.json
@@ -22,6 +28,8 @@ kaggle.json
 *.swp
 *.swo
 *~
+.cursor/
+.cursorrules
 
 # OS
 .DS_Store
@@ -29,6 +37,12 @@ Thumbs.db
 
 # Environment
 .env
+.venv/
 venv/
 env/
 
+# Logs (optional - comment out to track logs)
+*.log
+
+# Claude/AI
+.claude/
